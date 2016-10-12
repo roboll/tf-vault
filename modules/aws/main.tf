@@ -26,10 +26,10 @@ variable root_volume_size { default = 20 }
 variable acme_url { default = "https://acme-v01.api.letsencrypt.org/directory" }
 
 variable vault_image { default = "quay.io/roboll/vault" }
-variable vault_tag { default = "v0.6.1" }
+variable vault_tag { default = "v0.0.1" }
 
 variable statsd_image { default = "quay.io/roboll/prom-statsd-exporter" }
-variable statsd_tag { default = "0.3.0" }
+variable statsd_tag { default = "v0.0.1" }
 
 provider aws {
     region = "${var.region}"
