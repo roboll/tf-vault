@@ -23,8 +23,8 @@ coreos:
         [Service]
         Type=oneshot
 
-        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https quay.io/roboll/vault-ssh-coreos:v0.1.2
-        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite quay.io/roboll/vault-ssh-coreos:v0.1.2 /tmp/vault-ssh
+        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https ${vault_ssh_image}
+        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite ${vault_ssh_image} /tmp/vault-ssh
         ExecStartPost=/tmp/vault-ssh/link.sh
 
     - name: etcd2.service
@@ -88,21 +88,6 @@ write_files:
     encoding: base64
     content: |
       ${ca_cert_pem_b64}
-
-  - path: /opt/bin/install-ssh-helper.sh
-    permissions: 0700
-    content: |
-      #!/bin/bash
-      set -eo pipefail
-
-      log="/var/log/vault-ssh.log"
-      cmd="/opt/bin/vault/vault-ssh-helper -config /etc/vault/ssh.hcl"
-      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log $cmd"
-      cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
-      sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
-
-      rkt fetch --trust-keys-from-https quay.io/roboll/vault-ssh-coreos:v0.1.2
-      rkt image extract --rootfs-only quay.io/roboll/vault-ssh-coreos:v0.1.2 /opt/bin/vault
 
   - path: /etc/vault/ssh.hcl
     permissions: 0600

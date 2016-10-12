@@ -25,11 +25,9 @@ variable root_volume_size { default = 20 }
 
 variable acme_url { default = "https://acme-v01.api.letsencrypt.org/directory" }
 
-variable vault_image { default = "quay.io/roboll/vault" }
-variable vault_tag { default = "v0.0.1" }
-
-variable statsd_image { default = "quay.io/roboll/prom-statsd-exporter" }
-variable statsd_tag { default = "v0.0.1" }
+variable vault_image { default = "quay.io/roboll/vault:v0.0.1" }
+variable statsd_image { default = "quay.io/roboll/prom-statsd-exporter:v0.0.1" }
+variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.2.0" }
 
 provider aws {
     region = "${var.region}"
@@ -191,8 +189,9 @@ resource coreos_cloudconfig cloud_config {
         etcd_clients = "${join(",",formatlist("%s=http://%s:2379", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.hostname))}"
         etcd_instance_name = "${element(split(",", join(",", null_resource.instances.*.triggers.name)), count.index)}"
 
-        vault_image = "${var.vault_image}:${var.vault_tag}"
-        statsd_image = "${var.statsd_image}:${var.statsd_tag}"
+        vault_image = "${var.vault_image}"
+        statsd_image = "${var.statsd_image}"
+        vault_ssh_image = "${var.vault_ssh_image}"
 
         fqdn = "vault.${var.domain}"
         region = "${var.region}"
