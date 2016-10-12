@@ -25,8 +25,8 @@ variable root_volume_size { default = 20 }
 
 variable acme_url { default = "https://acme-v01.api.letsencrypt.org/directory" }
 
-variable vault_image { default = "quay.io/roboll/vault:v0.0.1" }
-variable statsd_image { default = "quay.io/roboll/prom-statsd-exporter:v0.0.1" }
+variable vault_image { default = "quay.io/roboll/vault:v0.2.0" }
+variable statsd_image { default = "quay.io/roboll/prom-statsd-exporter:v0.2.0" }
 variable vault_ssh_image { default = "quay.io/roboll/vault-ssh-coreos:v0.2.0" }
 
 provider aws {
