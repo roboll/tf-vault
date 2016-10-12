@@ -1,5 +1,11 @@
 # tf-vault [![CircleCI](https://circleci.com/gh/roboll/tf-vault.svg?style=svg)](https://circleci.com/gh/roboll/tf-vault)
 
+## Image
+
+Vault: [![Docker Repository on Quay](https://quay.io/repository/roboll/vault/status "Docker Repository on Quay")](https://quay.io/repository/roboll/vault)
+
+Exporter: [![Docker Repository on Quay](https://quay.io/repository/roboll/prom-statsd-exporter/status "Docker Repository on Quay")](https://quay.io/repository/roboll/prom-statsd-exporter)
+
 ## Deployment
 
 Terraform module for deploying [Vault](https://vaultproject.io) on [CoreOS](https://coreos.com) with [rkt](https://github.com/coreos/rkt).
