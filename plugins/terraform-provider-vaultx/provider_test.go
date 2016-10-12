@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/roboll/terraform-vault/plugins/terraform-provider-vaultx/vault"
+	"github.com/roboll/tf-vault/plugins/terraform-provider-vaultx/vault"
 )
 
 func TestProvider(t *testing.T) {
