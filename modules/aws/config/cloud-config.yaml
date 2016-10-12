@@ -1,0 +1,210 @@
+#cloud-config
+hostname: ${hostname}
+coreos:
+  update:
+    reboot-strategy: off
+
+  etcd2:
+    name: ${etcd_instance_name}
+    data_dir: /var/lib/etcd/data
+
+    initial_cluster: ${etcd_peers}
+    initial_cluster_state: new
+
+    initial_advertise_peer_urls: http://$private_ipv4:2380
+    listen_peer_urls: http://0.0.0.0:2380
+    advertise_client_urls: http://$private_ipv4:2379
+    listen_client_urls: http://0.0.0.0:2379
+
+  units:
+    - name: vault-ssh.service
+      command: start
+      content: |
+        [Service]
+        Type=oneshot
+
+        ExecStartPre=/usr/bin/rkt fetch --trust-keys-from-https quay.io/roboll/vault-ssh-coreos:v0.1.2
+        ExecStart=/usr/bin/rkt image extract --rootfs-only --overwrite quay.io/roboll/vault-ssh-coreos:v0.1.2 /tmp/vault-ssh
+        ExecStartPost=/tmp/vault-ssh/link.sh
+
+    - name: etcd2.service
+      command: start
+
+    - name: vault-tls-assets.service
+      command: start
+      content: |
+        [Unit]
+        Before=vault.service
+
+        [Service]
+        Type=simple
+        ExecStart=/opt/bin/vault-tls-assets.sh
+        ExecStartPost=-/usr/bin/systemctl kill -s HUP vault
+
+    - name: vault-tls-assets.timer
+      command: start
+      content: |
+        [Timer]
+        OnUnitActiveSec=12h
+
+    - name: statsd.service
+      command: start
+      content: |
+        [Unit]
+        Before=vault.service
+
+        [Service]
+        ExecStart=/opt/bin/statsd.sh
+
+    - name: vault.service
+      command: start
+      content: |
+        [Unit]
+        Requires=etcd2.service statsd.service
+        After=etcd2.service statsd.service
+        After=vault-tls-assets.service
+
+        [Service]
+        Restart=always
+        RestartSec=10
+
+        ExecStart=/opt/bin/vault.sh
+
+    - name: vault-audit.service
+      content: |
+        [Service]
+        ExecStart=/opt/bin/vault-audit.sh
+
+    - name: vault-audit.timer
+      command: start
+      content: |
+        [Timer]
+        OnCalendar=hourly
+        Persistent=true
+
+write_files:
+  - path: /etc/ssl/vault/ca.pem
+    permissions: 0644
+    encoding: base64
+    content: |
+      ${ca_cert_pem_b64}
+
+  - path: /opt/bin/install-ssh-helper.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      log="/var/log/vault-ssh.log"
+      cmd="/opt/bin/vault/vault-ssh-helper -config /etc/vault/ssh.hcl"
+      replace="auth\t\tsufficient\tpam_exec.so quiet expose_authtok log=$log $cmd"
+      cp /usr/lib64/pam.d/{sshd,system-remote-login,system-login,system-auth} /etc/pam.d/
+      sed -r -i /etc/pam.d/system-auth -e "s,^(auth.*required.*pam_deny.so)$,$replace\\n\1,g"
+
+      rkt fetch --trust-keys-from-https quay.io/roboll/vault-ssh-coreos:v0.1.2
+      rkt image extract --rootfs-only quay.io/roboll/vault-ssh-coreos:v0.1.2 /opt/bin/vault
+
+  - path: /etc/vault/ssh.hcl
+    permissions: 0600
+    content: |
+      vault_addr = "https://${fqdn}"
+      allowed_roles = "*"
+
+  - path: /opt/bin/vault-tls-assets.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      rkt fetch --trust-keys-from-https quay.io/roboll/awscli:v0.1
+      rkt_opts="--set-env AWS_DEFAULT_REGION=${region} \
+      --volume config,kind=host,source=/etc/vault.d \
+      --mount volume=config,target=/etc/vault.d \
+      --volume resolv,kind=host,source=/etc/resolv.conf \
+      --mount volume=resolv,target=/etc/resolv.conf"
+
+      rkt run $rkt_opts \
+        quay.io/roboll/awscli:v0.1 \
+        --interactive --net=host --exec sh \
+        -- -c "aws configure set s3.signature_version s3v4 && \
+           aws s3 sync s3://${data_bucket}/tls/ /etc/vault.d/tls"
+
+  - path: /opt/bin/vault-audit.sh
+    permissions: 0700
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+
+      rkt_opts="--set-env AWS_DEFAULT_REGION=${region} \
+      --volume config,kind=host,source=/etc/vault.d \
+      --mount volume=config,target=/etc/vault.d \
+      --volume resolv,kind=host,source=/etc/resolv.conf \
+      --mount volume=resolv,target=/etc/resolv.conf"
+
+      filename="audit/$(date +%F)/$(date +%0H)-$(hostname).log"
+      journalctl SYSLOG_IDENTIFIER=vault --since "-1h" > /tmp/vault-audit.log
+      rkt run $rkt_opts \
+        quay.io/roboll/awscli:v0.1 \
+        --interactive --net=host --exec aws \
+        -- s3 cp /tmp/vault-audit.log s3://${audit_bucket}/$filename \
+          --sse aws:kms --sse-kms-key-id ${kms_key}
+      rm -f /tmp/vault-audit.log
+
+  - path: /opt/bin/vault.sh
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      set -eo pipefail
+
+      rkt fetch --trust-keys-from-https ${vault_image}
+      exec rkt run \
+        --volume resolv,kind=host,source=/etc/resolv.conf \
+        --mount volume=resolv,target=/etc/resolv.conf \
+        --volume config,kind=host,source=/etc/vault.d \
+        --mount volume=config,target=/etc/vault.d \
+        --volume log,kind=host,source=/dev/log \
+        --mount volume=log,target=/dev/log \
+        --net=host \
+        ${vault_image} --exec=/opt/bin/vault --caps-retain=CAP_IPC_LOCK \
+        -- server -config /etc/vault.d/vault.hcl
+
+  - path: /opt/bin/statsd.sh
+    permissions: 0700
+    content: |
+      #! /bin/bash
+      set -eo pipefail
+
+      rkt fetch --trust-keys-from-https ${statsd_image}
+      exec rkt run \
+        --volume dns,kind=host,source=/etc/resolv.conf \
+        --mount volume=dns,target=/etc/resolv.conf \
+        --volume config,kind=host,source=/etc/vault.d \
+        --mount volume=config,target=/etc/vault.d \
+        --volume log,kind=host,source=/dev/log \
+        --mount volume=log,target=/dev/log \
+        --net=host \
+        ${statsd_image}
+
+  - path: /etc/vault.d/vault.hcl
+    content: |
+      ha_backend etcd {
+        advertise_addr = "https://${fqdn}"
+        instances = "${etcd_clients}"
+      }
+
+      backend s3 {
+        bucket = "${data_bucket}"
+        region = "${region}"
+      }
+
+      telemetry {
+        statsd_address = "localhost:9125"
+      }
+
+      listener tcp {
+        address = ":8200"
+
+        tls_min_version = "tls11"
+        tls_cert_file = "/etc/vault.d/tls/cert.pem"
+        tls_key_file = "/etc/vault.d/tls/privkey.pem"
+      }
