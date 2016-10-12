@@ -24,11 +24,11 @@ test:
 .PHONY: test
 
 cross:
-	gox -os '!freebsd' -arch '!arm' -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}" ${TARGETS}
+	gox -os '!freebsd !netbsd' -arch '!arm' -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}" ${TARGETS}
 .PHONY: cross
 
 pristine: generate fmt
-	git ls-files --modified --deleted --untracked | diff /dev/null -
+	git ls-files --modified --deleted --others | diff /dev/null -
 .PHONY: pristine
 
 release: pristine cross
