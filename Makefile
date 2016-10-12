@@ -41,12 +41,12 @@ tools:
 
 images:
 	docker build -t ${PREFIX}/vault:${TAG} images/vault
-	docker build -t ${PREFIX}/prom-statds-exporter:${TAG} images/prom-statsd-exporter
+	docker build -t ${PREFIX}/vault-metrics:${TAG} images/vault-metrics
 .PHONY: images
 
 push: images
 	docker push ${PREFIX}/vault:${TAG}
-	docker push ${PREFIX}/prom-statsd-exporter:${TAG}
+	docker push ${PREFIX}/vault-metrics:${TAG}
 .PHONY: push
 
 TAG  = $(shell git describe --tags --abbrev=0 HEAD)

@@ -47,21 +47,21 @@ coreos:
         [Timer]
         OnUnitActiveSec=12h
 
-    - name: statsd.service
+    - name: vault-metrics.service
       command: start
       content: |
         [Unit]
         Before=vault.service
 
         [Service]
-        ExecStart=/opt/bin/statsd.sh
+        ExecStart=/opt/bin/vault-metrics.sh
 
     - name: vault.service
       command: start
       content: |
         [Unit]
-        Requires=etcd2.service statsd.service
-        After=etcd2.service statsd.service
+        Requires=etcd2.service vault-metrics.service
+        After=etcd2.service vault-metrics.service
         After=vault-tls-assets.service
 
         [Service]
@@ -153,13 +153,13 @@ write_files:
         ${vault_image} --exec=/opt/bin/vault --caps-retain=CAP_IPC_LOCK \
         -- server -config /etc/vault.d/vault.hcl
 
-  - path: /opt/bin/statsd.sh
+  - path: /opt/bin/vault-metrics.sh
     permissions: 0700
     content: |
       #! /bin/bash
       set -eo pipefail
 
-      rkt fetch --trust-keys-from-https ${statsd_image}
+      rkt fetch --trust-keys-from-https ${metrics_image}
       exec rkt run \
         --volume dns,kind=host,source=/etc/resolv.conf \
         --mount volume=dns,target=/etc/resolv.conf \
@@ -168,7 +168,7 @@ write_files:
         --volume log,kind=host,source=/dev/log \
         --mount volume=log,target=/dev/log \
         --net=host \
-        ${statsd_image}
+        ${metrics_image}
 
   - path: /etc/vault.d/vault.hcl
     content: |
