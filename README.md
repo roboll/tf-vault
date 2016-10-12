@@ -1,4 +1,4 @@
-# tf-vault
+# tf-vault [![CircleCI](https://circleci.com/gh/roboll/tf-vault.svg?style=svg)](https://circleci.com/gh/roboll/tf-vault)
 
 ## Deployment
 
