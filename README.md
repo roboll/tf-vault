@@ -4,7 +4,7 @@
 
 Vault: [![Docker Repository on Quay](https://quay.io/repository/roboll/vault/status "Docker Repository on Quay")](https://quay.io/repository/roboll/vault)
 
-Exporter: [![Docker Repository on Quay](https://quay.io/repository/roboll/prom-statsd-exporter/status "Docker Repository on Quay")](https://quay.io/repository/roboll/prom-statsd-exporter)
+Exporter: [![Docker Repository on Quay](https://quay.io/repository/roboll/vault-metrics/status "Docker Repository on Quay")](https://quay.io/repository/roboll/vault-metrics)
 
 ## Deployment
 
