@@ -26,7 +26,5 @@ RUN unzip /opt/vault/vault_${VERSION}_linux_amd64.zip && \
 	mkdir -p /opt/bin && mv /opt/vault/vault /opt/bin/vault && \
 	chmod +x /opt/bin/vault && setcap cap_ipc_lock=+ep /opt/bin/vault
 
-VOLUME /etc/vault.d/
-
 ENTRYPOINT [ "/opt/bin/vault" ]
 CMD [ "server", "-config", "/etc/vault.hcl" ]
