@@ -124,7 +124,9 @@ write_files:
       --volume config,kind=host,source=/etc/vault.d \
       --mount volume=config,target=/etc/vault.d \
       --volume resolv,kind=host,source=/etc/resolv.conf \
-      --mount volume=resolv,target=/etc/resolv.conf"
+      --mount volume=resolv,target=/etc/resolv.conf \
+      --volume log,kind=host,source=/tmp/vault-audit.log \
+      --mount volume=log,target=/tmp/vault-audit.log"
 
       filename="audit/$(date +%F)/$(date +%0H)-$(hostname).log"
       journalctl SYSLOG_IDENTIFIER=vault --since "-1h" > /tmp/vault-audit.log
