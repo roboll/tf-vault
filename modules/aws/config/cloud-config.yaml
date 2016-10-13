@@ -175,6 +175,7 @@ write_files:
       ha_backend etcd {
         advertise_addr = "https://${fqdn}"
         instances = "${etcd_clients}"
+        ha_enabled = "1"
       }
 
       backend s3 {
@@ -188,6 +189,7 @@ write_files:
 
       listener tcp {
         address = ":8200"
+        cluster_address = ":8201"
 
         tls_min_version = "tls11"
         tls_cert_file = "/etc/vault.d/tls/cert.pem"

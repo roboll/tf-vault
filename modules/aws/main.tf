@@ -186,7 +186,7 @@ resource coreos_cloudconfig cloud_config {
 
     vars {
         etcd_peers = "${join(",",formatlist("%s=http://%s:2380", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.hostname))}"
-        etcd_clients = "${join(",",formatlist("%s=http://%s:2379", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.hostname))}"
+        etcd_clients = "${join(",",formatlist("http://%s:2379", null_resource.instances.*.triggers.name, null_resource.instances.*.triggers.hostname))}"
         etcd_instance_name = "${element(split(",", join(",", null_resource.instances.*.triggers.name)), count.index)}"
 
         vault_image = "${var.vault_image}"
