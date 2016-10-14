@@ -39,7 +39,7 @@ coreos:
         [Service]
         Type=simple
         ExecStart=/opt/bin/vault-tls-assets.sh
-        ExecStartPost=/bin/bash -c "rkt enter $(cat /var/run/vault.uuid) pkill -HUP vault"
+        ExecStartPost=-/bin/bash -c "rkt enter $(cat /var/run/vault.uuid) pkill -HUP vault"
 
     - name: vault-tls-assets.timer
       command: start
