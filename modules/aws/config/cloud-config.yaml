@@ -39,7 +39,7 @@ coreos:
         [Service]
         Type=simple
         ExecStart=/opt/bin/vault-tls-assets.sh
-        ExecStartPost=-/usr/bin/systemctl kill -s HUP vault
+        ExecStartPost=/bin/bash -c "rkt enter $(cat /var/run/vault.uuid) pkill -HUP vault"
 
     - name: vault-tls-assets.timer
       command: start
@@ -162,7 +162,7 @@ write_files:
       set -eo pipefail
 
       rkt fetch --trust-keys-from-https ${metrics_image}
-      exec rkt run \
+      exec rkt run --uuid-file-save=/var/run/vault.uuid \
         --volume dns,kind=host,source=/etc/resolv.conf \
         --mount volume=dns,target=/etc/resolv.conf \
         --volume config,kind=host,source=/etc/vault.d \
