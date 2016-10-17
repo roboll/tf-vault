@@ -148,7 +148,10 @@ resource aws_iam_role_policy vault_ec2 {
         {
             "Effect": "Allow",
             "Resource": "*",
-            "Action": [ "ec2:DescribeInstances" ]
+            "Action": [
+                "ec2:DescribeInstances",
+                "iam:GetInstanceProfile"
+            ]
         }
     ]
 }
